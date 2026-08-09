@@ -3,18 +3,31 @@ import fitz
 
 class PDFLoader:
 
-    def load_pdf(self, pdf_path: str) -> str:
-        """
-        Read a PDF and return all text as a single string.
-        """
+    def load_pages(self, file_path: str):
 
-        document = fitz.open(pdf_path)
+        pdf = fitz.open(file_path)
 
-        text = ""
+        pages = []
 
-        for page in document:
-            text += page.get_text()
+        for page_number, page in enumerate(pdf, start=1):
 
-        document.close()
+            text = page.get_text()
 
-        return text
+            if text.strip():
+                pages.append({
+                    "page": page_number,
+                    "text": text,
+                })
+
+        pdf.close()
+
+        return pages
+
+    def load_pdf(self, file_path: str):
+
+        pages = self.load_pages(file_path)
+
+        return "\n\n".join(
+            page["text"]
+            for page in pages
+        )

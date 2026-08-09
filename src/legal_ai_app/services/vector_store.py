@@ -1,5 +1,4 @@
 from langchain_chroma import Chroma
-
 from langchain_core.documents import Document
 
 from legal_ai_app.core.config import settings
@@ -9,38 +8,61 @@ from legal_ai_app.services.embedding_service import EmbeddingService
 class VectorStore:
 
     def __init__(self):
+        self.embeddings = EmbeddingService().get_embeddings()
 
-        embedding_service = EmbeddingService()
+    def get_collection(self, collection_name: str):
 
-        self.vector_db = Chroma(
-            collection_name="legal_documents",
+        return Chroma(
+            collection_name=collection_name,
             persist_directory=settings.CHROMA_DIR,
-            embedding_function=embedding_service.get_embeddings(),
+            embedding_function=self.embeddings,
         )
 
-    def add_documents(self, chunks):
+    def add_documents(
+        self,
+        chunks: list[str],
+        collection_name: str,
+        metadata: dict | None = None,
+    ):
+
+        db = self.get_collection(collection_name)
 
         documents = []
 
         for index, chunk in enumerate(chunks):
 
+            chunk_metadata = {
+                "chunk_id": index,
+                **(metadata or {}),
+            }
+
             documents.append(
                 Document(
                     page_content=chunk,
-                    metadata={
-                        "chunk_id": index
-                    }
+                    metadata=chunk_metadata,
                 )
             )
 
-        self.vector_db.add_documents(documents)
+        db.add_documents(documents)
 
+    def similarity_search(
+        self,
+        query: str,
+        collection_name: str,
+        k: int = 5,
+        filter: dict | None = None,
+    ):
 
-    def similarity_search(self, query: str, k: int = 5):
+        db = self.get_collection(collection_name)
 
-        return self.vector_db.similarity_search(
-        query=query,
-        k=k
+        return db.similarity_search(
+            query=query,
+            k=k,
+            filter=filter,
         )
-    def count(self):
-        return self.vector_db._collection.count()
+
+    def count(self, collection_name: str):
+
+        db = self.get_collection(collection_name)
+
+        return db._collection.count()

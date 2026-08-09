@@ -18,7 +18,7 @@ class UploadService:
 
         file_path = os.path.join(
             settings.UPLOAD_DIR,
-            file.filename
+            file.filename,
         )
 
         with open(file_path, "wb") as buffer:
@@ -27,13 +27,24 @@ class UploadService:
         pdf_text = self.pdf_loader.load_pdf(file_path)
 
         chunks = self.text_splitter.split_text(pdf_text)
-        self.vector_store.add_documents(chunks)
 
-        print("Stored", len(chunks), "chunks in ChromaDB")
-        print("Documents in Chroma:", self.vector_store.count())
+        self.vector_store.add_documents(
+            chunks=chunks,
+            collection_name="user_documents",
+            metadata={
+                "source": file.filename,
+                "document_type": "user_upload",
+            },
+        )
+
+        print(
+            "Stored",
+            len(chunks),
+            "chunks in user_documents"
+        )
 
         return {
             "filename": file.filename,
             "characters": len(pdf_text),
-            "chunks": chunks
+            "chunks": chunks,
         }

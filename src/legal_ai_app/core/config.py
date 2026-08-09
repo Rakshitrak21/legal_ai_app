@@ -12,6 +12,8 @@ class Settings:
 
     CHROMA_DIR = "src/legal_ai_app/storage/chroma"
 
+    KNOWLEDGE_BASE_DIR = "src/legal_ai_app/storage/knowledge_base"
+
     CHUNK_SIZE = 1000
 
     CHUNK_OVERLAP = 200
@@ -24,3 +26,4 @@ class Settings:
 settings = Settings()
 os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
 os.makedirs(settings.CHROMA_DIR, exist_ok=True)
+os.makedirs(settings.KNOWLEDGE_BASE_DIR,exist_ok=True)
