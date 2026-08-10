@@ -48,21 +48,50 @@ class VectorStore:
     def similarity_search(
         self,
         query: str,
-        collection_name: str,
+        collection_name: str = "user_documents",
+        category: str | None = None,
+        document_type: str | None = None,
         k: int = 5,
-        filter: dict | None = None,
     ):
 
-        db = self.get_collection(collection_name)
+        db = self.get_collection(
+            collection_name
+        )
+
+        filters = []
+
+        if category:
+            filters.append({
+                "category": category
+            })
+
+        if document_type:
+            filters.append({
+                "document_type": document_type
+            })
+
+        filter_condition = None
+
+        if len(filters) == 1:
+
+            filter_condition = filters[0]
+
+        elif len(filters) > 1:
+
+            filter_condition = {
+                "$and": filters
+            }
 
         return db.similarity_search(
             query=query,
             k=k,
-            filter=filter,
+            filter=filter_condition,
         )
 
     def count(self, collection_name: str):
 
-        db = self.get_collection(collection_name)
+        db = self.get_collection(
+            collection_name
+        )
 
         return db._collection.count()

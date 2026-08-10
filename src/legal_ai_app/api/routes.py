@@ -13,9 +13,13 @@ from legal_ai_app.services.citation_service import CitationService
 from legal_ai_app.services.query_classifier import QueryClassifier
 from legal_ai_app.services.legal_response_service import LegalResponseService
 from legal_ai_app.services.conversation_service import ConversationService
-
+from legal_ai_app.services.legal_issue_analyzer import LegalIssueAnalyzer
 from legal_ai_app.rag.hybrid_retriever import HybridRetriever
 from legal_ai_app.rag.context_builder import ContextBuilder
+from legal_ai_app.services.legal_provision_finder import LegalProvisionFinder
+from legal_ai_app.services.research_planner import ResearchPlanner
+
+
 
 
 router = APIRouter()
@@ -24,10 +28,13 @@ upload_service = UploadService()
 vector_store = VectorStore()
 citation_service = CitationService()
 query_classifier = QueryClassifier()
+legal_issue_analyzer = LegalIssueAnalyzer()
 hybrid_retriever = HybridRetriever()
 context_builder = ContextBuilder()
 legal_response_service = LegalResponseService()
 conversation_service = ConversationService()
+legal_provision_finder = LegalProvisionFinder()
+research_planner = ResearchPlanner()
 
 
 @router.post(
@@ -79,14 +86,42 @@ async def ask_question(
         request.question
     )
 
+    issue_analysis = legal_issue_analyzer.analyze(
+        request.question
+    )
+
+    research_plan = research_planner.create_plan(
+        question=request.question,
+        classification=classification,
+        issue_analysis=issue_analysis,
+    )
+
+    legal_provisions = legal_provision_finder.find(
+        question=request.question,
+        issue_analysis=issue_analysis,
+    )
+
     print("\n" + "=" * 80)
     print("QUERY CLASSIFICATION")
     print(classification)
+
+    print("\nLEGAL ISSUE ANALYSIS")
+    print(issue_analysis)
+
+    print("\nRESEARCH PLAN")
+    print(research_plan)
+
+    print("\nLEGAL PROVISIONS")
+    print(legal_provisions)
 
     # Retrieve relevant documents.
     documents = hybrid_retriever.retrieve(
         question=request.question,
         category=classification.category,
+        retrieval_queries=issue_analysis.get(
+            "retrieval_queries",
+            [],
+        ),
         user_k=5,
         legal_k=5,
         top_k=5,
@@ -123,6 +158,7 @@ async def ask_question(
     answer = legal_response_service.generate(
         question=request.question,
         classification=classification,
+        legal_provisions=legal_provisions,
         context=context,
         history=history,
     )
